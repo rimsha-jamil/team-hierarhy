@@ -49,7 +49,7 @@ function renderTree(node) {
   if (node.subordinates && node.subordinates.length > 0) {
     const toggle = document.createElement("button");
     toggle.className = "toggle";
-    toggle.textContent = "−";
+    toggle.textContent = "-";
     toggle.addEventListener("click", (e) => {
       e.stopPropagation();
       childUL.classList.toggle("collapsed");
