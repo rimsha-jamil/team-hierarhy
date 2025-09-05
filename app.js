@@ -1,5 +1,3 @@
-
-
 // helper function
 let idCounter = 1;
 function assignIds(node) {
@@ -10,25 +8,27 @@ assignIds(team);
 
 function findNodeById(node, id) {
   if (node._id === id) return node;
-  for (const c of node.subordinates || []) {
-    const f = findNodeById(c, id);
-    if (f) return f;
+  for (const child of node.subordinates || []) {
+    const foundNode = findNodeById(child, id);
+    if (foundNode) return foundNode;
   }
   return null;
 }
 
 function findExact(node, nameLower) {
   if (node.name.toLowerCase() === nameLower) return node;
-  for (const c of node.subordinates || []) {
-    const f = findExact(c, nameLower);
-    if (f) return f;
+  for (const child of node.subordinates || []) {
+    const foundExact = findExact(child, nameLower);
+    if (foundExact) return foundExact;
   }
   return null;
 }
 
-function findPartial(node, nameLower, out) {
-  if (node.name.toLowerCase().includes(nameLower)) out.push(node);
-  for (const c of node.subordinates || []) findPartial(c, nameLower, out);
+function findPartial(node, nameLower, resultArray) {
+  if (node.name.toLowerCase().includes(nameLower)) resultArray.push(node);
+  for (const child of node.subordinates || []) {
+    findPartial(child, nameLower, resultArray);
+  }
 }
 
 
@@ -38,80 +38,80 @@ const detailsDiv = document.getElementById("details");
 let currentSelectedId = null;
 
 function renderTree(node) {
-  const li = document.createElement("li");
-  li.dataset.id = node._id;
+  const listItem = document.createElement("li");
+  listItem.dataset.id = node._id;
 
-  const header = document.createElement("div");
-  header.className = "node-header";
+  const headerDiv = document.createElement("div");
+  headerDiv.className = "node-header";
 
   // toggle or spacer
-  const childUL = document.createElement("ul");
+  const childList = document.createElement("ul");
   if (node.subordinates && node.subordinates.length > 0) {
-    const toggle = document.createElement("button");
-    toggle.className = "toggle";
-    toggle.textContent = "-";
-    toggle.addEventListener("click", (e) => {
-      e.stopPropagation();
-      childUL.classList.toggle("collapsed");
-      toggle.textContent = childUL.classList.contains("collapsed") ? "+" : "−";
+    const toggleButton = document.createElement("button");
+    toggleButton.className = "toggle";
+    toggleButton.textContent = "-";
+    toggleButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      childList.classList.toggle("collapsed");
+      toggleButton.textContent = childList.classList.contains("collapsed") ? "+" : "−";
     });
-    header.appendChild(toggle);
+    headerDiv.appendChild(toggleButton);
   } else {
-    const sp = document.createElement("span");
-    sp.className = "spacer";
-    header.appendChild(sp);
+    const spacer = document.createElement("span");
+    spacer.className = "spacer";
+    headerDiv.appendChild(spacer);
   }
 
   const nameSpan = document.createElement("span");
   nameSpan.className = "node-name";
   nameSpan.textContent = node.name;
   nameSpan.addEventListener("click", () => selectNode(node._id));
-  header.appendChild(nameSpan);
+  headerDiv.appendChild(nameSpan);
 
-  const subtext = document.createElement("span");
-  subtext.className = "node-subtext";
-  subtext.textContent = ` (${node.role}) • ${node.department}`;
-  header.appendChild(subtext);
+  const roleAndDept = document.createElement("span");
+  roleAndDept.className = "node-subtext";
+  roleAndDept.textContent = ` (${node.role}) • ${node.department}`;
+  headerDiv.appendChild(roleAndDept);
 
-  const progress = document.createElement("span");
-  progress.className = "progress " + (node.tasksCompleted < 5 ? "bad" : "good");
-  progress.textContent = node.tasksCompleted < 5 ? "Bad Progress" : `Tasks: ${node.tasksCompleted}`;
-  header.appendChild(progress);
+  const progressSpan = document.createElement("span");
+  progressSpan.className = "progress " + (node.tasksCompleted < 5 ? "bad" : "good");
+  progressSpan.textContent = node.tasksCompleted < 5 ? "Bad Progress" : `Tasks: ${node.tasksCompleted}`;
+  headerDiv.appendChild(progressSpan);
 
-  li.appendChild(header);
+  listItem.appendChild(headerDiv);
 
   // children
   if (node.subordinates && node.subordinates.length > 0) {
-    for (const c of node.subordinates) {
-      childUL.appendChild(renderTree(c));
+    for (const child of node.subordinates) {
+      childList.appendChild(renderTree(child));
     }
-    li.appendChild(childUL);
+    listItem.appendChild(childList);
   }
-  return li;
+  return listItem;
 }
 
 function showTree() {
   treeRoot.innerHTML = "";
-  const ul = document.createElement("ul");
-  ul.appendChild(renderTree(team));
-  treeRoot.appendChild(ul);
+  const rootList = document.createElement("ul");
+  rootList.appendChild(renderTree(team));
+  treeRoot.appendChild(rootList);
 }
 showTree();
 
 
 //  Selection & Details
 function selectNode(id) {
-  const node = findNodeById(team, id);
-  if (!node) return;
+  const selectedNode = findNodeById(team, id);
+  if (!selectedNode) return;
 
   // highlight
-  const prev = treeRoot.querySelector(".selected");
-  if (prev) prev.classList.remove("selected");
-  const li = treeRoot.querySelector(`[data-id="${id}"]`);
-  if (li) li.classList.add("selected");
+  const previouslySelected = treeRoot.querySelector(".selected");
+  if (previouslySelected) previouslySelected.classList.remove("selected");
+  const currentListItem = treeRoot.querySelector(`[data-id="${id}"]`);
+  if (currentListItem) currentListItem.classList.add("selected");
 
   // details
-  renderDetails(node);
+  renderDetails(selectedNode);
 }
 
 function renderDetails(node) {
@@ -122,10 +122,10 @@ function renderDetails(node) {
       ${node.tasksCompleted < 5 ? "<span style='color:red;font-weight:bold'>Bad Progress</span>" : ""}
     </p>
     <p><strong>Data Shared:</strong></p>
-    <ul>${(node.sharedData || []).map(d => `<li>${d}</li>`).join("")}</ul>
+    <ul>${(node.sharedData || []).map(sharedItem => `<li>${sharedItem}</li>`).join("")}</ul>
     <p><strong>Subordinates:</strong></p>
     ${node.subordinates && node.subordinates.length > 0 
-      ? `<ul>${node.subordinates.map(s => `<li>${s.name} (${s.role})</li>`).join("")}</ul>`
+      ? `<ul>${node.subordinates.map(subordinate => `<li>${subordinate.name} (${subordinate.role})</li>`).join("")}</ul>`
       : "<p>No subordinates.</p>"
     }
   `;
@@ -140,42 +140,42 @@ const matchesDiv = document.getElementById("matches");
 
 function searchPerson() {
   matchesDiv.innerHTML = "";
-  const q = searchInput.value.trim().toLowerCase();
-  if (!q) return;
+  const query = searchInput.value.trim().toLowerCase();
+  if (!query) return;
 
-  const exact = findExact(team, q);
-  if (exact) {
-    selectNode(exact._id);
+  const exactMatch = findExact(team, query);
+  if (exactMatch) {
+    selectNode(exactMatch._id);
     return;
   }
 
-  const partials = [];
-  findPartial(team, q, partials);
+  const partialMatches = [];
+  findPartial(team, query, partialMatches);
 
-  if (partials.length === 0) {
+  if (partialMatches.length === 0) {
     matchesDiv.innerHTML = "<p>No person found.</p>";
     return;
   }
-  if (partials.length === 1) {
-    selectNode(partials[0]._id);
+  if (partialMatches.length === 1) {
+    selectNode(partialMatches[0]._id);
     return;
   }
 
   matchesDiv.innerHTML = "<p>Multiple matches:</p>";
-  partials.forEach(p => {
-    const b = document.createElement("button");
-    b.className = "match-btn";
-    b.textContent = `${p.name} (${p.role})`;
-    b.addEventListener("click", () => {
-      selectNode(p._id);
+  partialMatches.forEach(match => {
+    const matchButton = document.createElement("button");
+    matchButton.className = "match-btn";
+    matchButton.textContent = `${match.name} (${match.role})`;
+    matchButton.addEventListener("click", () => {
+      selectNode(match._id);
       matchesDiv.innerHTML = "";
     });
-    matchesDiv.appendChild(b);
+    matchesDiv.appendChild(matchButton);
   });
 }
 
 searchBtn.addEventListener("click", searchPerson);
-searchInput.addEventListener("keydown", (e) => { if (e.key === "Enter") searchPerson(); });
+searchInput.addEventListener("keydown", (event) => { if (event.key === "Enter") searchPerson(); });
 clearBtn.addEventListener("click", () => {
   searchInput.value = "";
   matchesDiv.innerHTML = "";
